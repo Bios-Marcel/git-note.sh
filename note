@@ -1,0 +1,124 @@
+#!/bin/bash
+
+#
+# Made by Marcel Schramm on 09.06.2018
+#
+# This is a demo script which aims to demonstrate the workflow of an app that allows taking notes which are persisted and synchronized using git.
+#
+# This script depends on:
+#   - git
+#   - nano
+
+#
+# Configuration
+#
+
+# Fileeditor to use, the default is nano.
+fileeditor=nano
+
+# Retrieve the name of the scriptfile itself.
+ProgName=$(basename $0)
+
+sub_help(){
+    echo "Available commands: setup, create, edit, delete and sync"
+}
+
+sub_setup(){
+    echo "Initializing git repository."
+    git init
+
+    echo "Please add a remote repository."
+    read remote
+    git remote add origin $remote
+    git remote -v
+
+    # Initially get all notes if any are present
+    git pull
+}
+
+sub_create(){
+    if [ -f $1 ]; then
+        echo "A note named $newName already exists, do you want to edit the existing note instead? (y/n)"
+        read answer
+        if [ "$answer" != "${answer#[Yy]}" ] ;then
+            $fileeditor $1
+            git commit $1 -m "Note $1 has been edited"
+        fi
+    else
+        touch $1
+        $fileeditor $1
+        git stage $1
+        git commit $1 -m "Note $1 has been created."
+    fi
+
+    git_push
+}
+
+sub_delete(){
+    if [ -f $1 ]; then
+        rm $1
+        git commit $1 -m "Note $1 has been deleted"
+    else
+        echo "Note $1 doesn't exist. No action will be executed."
+    fi
+
+    git_push
+}
+
+sub_edit(){
+    if [ -f $1 ]; then
+        $fileeditor $1
+        git commit $1 -m "Note $1 has been edited."
+    else
+        echo "Note $1 doesn't exist, do you want to create the note instead? (y/n)"
+        read answer
+        if [ "$answer" != "${answer#[Yy]}" ] ;then
+            touch $1
+            $fileeditor $1
+            git stage $1
+            git commit $1 -m "Note $1 has been created."
+        fi
+    fi
+
+    git_push
+}
+
+sub_sync(){
+    git pull
+    # TODO: Resolve conflicts?
+    git_push
+}
+
+git_push(){
+    git push -u origin master
+}
+
+# Executed requested command
+subcommand=$1
+case $subcommand in
+    "" | "help")
+        sub_help
+        ;;
+    "setup")
+        sub_setup
+        ;;
+    *)
+        if [ -d .git ]; then
+            echo "TODO: Initital steps on script start"
+            # TODO: Initial steps on script start
+        else
+            echo "Directory hasn't been setup to be used with $ProgName."
+            echo "    Type $ProgName setup to initialize the directory."
+
+            exit
+        fi
+
+        shift
+        sub_${subcommand} $@
+            if [ $? = 127 ]; then
+                echo "Error: '$subcommand' is not a known subcommand." >&2
+                echo "       Run '$ProgName help' for a list of known subcommands." >&2
+                exit 1
+            fi
+        ;;
+esac
