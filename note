@@ -17,10 +17,10 @@
 #
 
 # Fileeditor to use, the default is nano.
-fileeditor=nano
-
+readonly fileeditor=nano
+    
 # Retrieve the name of the scriptfile itself.
-ProgName=$(basename $0)
+readonly ProgName=$(basename $0)
 
 #
 # User-callable commands
@@ -29,10 +29,22 @@ ProgName=$(basename $0)
 # The help subcommand method look the following: 'sub_$command_help'
 #
 
+#
+# Short descriptions for every commands
+#
+helpDesc="Displays the available commands (which you are seeing right now)."
+setupDesc="Initializes the current folder to be used with $ProgName."
+createDesc="Creates a new note."
+editDesc="Edit a existing note."
+deleteDesc="Delete a existing note."
+
 function sub_help(){
     echo "Available subcommands:"
-    # Using 'printf' here, since 'echo -e' isn't valid in powershell
-    printf "    * setup\n    * create\n    * edit\n    * delete\n    * sync\n"
+    echo "    * help: $helpDesc"
+    echo "    * setup: $setupDesc"
+    echo "    * create $createDesc"
+    echo "    * edit $editDesc"
+    echo "    * delete $deleteDesc"
     echo "Type '$ProgName subcommand help' for additional command information."
 }
 
@@ -55,7 +67,9 @@ function sub_setup(){
 }
 
 function sub_setup_help() {
-    echo "TODO"
+    echo "Usage: $ProgName setup [--help]"
+    echo ""
+    echo "$setupDesc"
 }
 
 function sub_create(){
@@ -127,7 +141,6 @@ case $subcommand in
         subcommandParameter=$2
         case $subcommandParameter in
             "--help" | "-help" | "-h" | "--h")
-                echo "Help called"
                 sub_${subcommand}_help
                 ;;
             *)
