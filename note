@@ -8,6 +8,9 @@
 # This script depends on:
 #   - git
 #   - nano
+#
+# This script aims to be posix compatible, to assure functionallity in powershell
+#
 
 #
 # Configuration
@@ -19,11 +22,26 @@ fileeditor=nano
 # Retrieve the name of the scriptfile itself.
 ProgName=$(basename $0)
 
-sub_help(){
-    echo "Available commands: setup, create, edit, delete and sync"
+#
+# User-callable commands
+#
+# All functions starting with 'sub_' are user-callable commands and most commands also have a 'help' subcommand.
+# The help subcommand method look the following: 'sub_$command_help'
+#
+
+function sub_help(){
+    echo "Available subcommands:"
+    # Using 'printf' here, since 'echo -e' isn't valid in powershell
+    printf "    * setup\n    * create\n    * edit\n    * delete\n    * sync\n"
+    echo "Type '$ProgName subcommand help' for additional command information."
 }
 
-sub_setup(){
+function sub_setup(){
+    if [ -d .git ]; then
+        echo "Directory has already been initialized."
+        exit 1
+    fi
+
     echo "Initializing git repository."
     git init
 
@@ -36,7 +54,11 @@ sub_setup(){
     git pull
 }
 
-sub_create(){
+function sub_setup_help() {
+    echo "TODO"
+}
+
+function sub_create(){
     if [ -f $1 ]; then
         echo "A note named $newName already exists, do you want to edit the existing note instead? (y/n)"
         read answer
@@ -45,7 +67,7 @@ sub_create(){
             git commit $1 -m "Note $1 has been edited"
         fi
     else
-        touch $1
+        echo "" >> $1
         $fileeditor $1
         git stage $1
         git commit $1 -m "Note $1 has been created."
@@ -54,7 +76,7 @@ sub_create(){
     git_push
 }
 
-sub_delete(){
+function sub_delete(){
     if [ -f $1 ]; then
         rm $1
         git commit $1 -m "Note $1 has been deleted"
@@ -65,7 +87,7 @@ sub_delete(){
     git_push
 }
 
-sub_edit(){
+function sub_edit(){
     if [ -f $1 ]; then
         $fileeditor $1
         git commit $1 -m "Note $1 has been edited."
@@ -73,7 +95,7 @@ sub_edit(){
         echo "Note $1 doesn't exist, do you want to create the note instead? (y/n)"
         read answer
         if [ "$answer" != "${answer#[Yy]}" ] ;then
-            touch $1
+            echo "" >> $1
             $fileeditor $1
             git stage $1
             git commit $1 -m "Note $1 has been created."
@@ -83,42 +105,54 @@ sub_edit(){
     git_push
 }
 
-sub_sync(){
+function sub_sync(){
     git pull
     # TODO: Resolve conflicts?
     git_push
 }
 
-git_push(){
+function git_push(){
     git push -u origin master
 }
 
 # Executed requested command
 subcommand=$1
 case $subcommand in
-    "" | "help")
+    # Special treatment for help since it can be called multiple ways and should always be callable
+    "" | "help" | "-help" | "--help" | "-h" | "--h")
         sub_help
         ;;
-    "setup")
-        sub_setup
-        ;;
+    # Performing checks and executing given subcommands
     *)
-        if [ -d .git ]; then
-            echo "TODO: Initital steps on script start"
-            # TODO: Initial steps on script start
-        else
-            echo "Directory hasn't been setup to be used with $ProgName."
-            echo "    Type $ProgName setup to initialize the directory."
+        subcommandParameter=$2
+        case $subcommandParameter in
+            "--help" | "-help" | "-h" | "--h")
+                echo "Help called"
+                sub_${subcommand}_help
+                ;;
+            *)
+                # Special treatmeant for setup as it should always be possible to call it
+                if [ ! "setup" = "$subcommand" ]; then
+                    if [ -d .git ]; then
+                        echo "TODO: Initital steps on script start"
+                        # TODO: Initial steps on script start
+                    else
+                        echo "Directory hasn't been setup to be used with $ProgName."
+                        echo "    Type $ProgName setup to initialize the directory."
 
-            exit
+                        exit 1
+                    fi
+                fi
+
+                shift
+                sub_${subcommand} $@
+                ;;
+        esac
+
+        if [ $? = 127 ]; then
+            echo "Error: '$@' is not a known command." >&2
+            echo "       Run '$ProgName help' for a list of known subcommands." >&2
+            exit 1
         fi
-
-        shift
-        sub_${subcommand} $@
-            if [ $? = 127 ]; then
-                echo "Error: '$subcommand' is not a known subcommand." >&2
-                echo "       Run '$ProgName help' for a list of known subcommands." >&2
-                exit 1
-            fi
         ;;
 esac
