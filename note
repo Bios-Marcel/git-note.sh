@@ -9,7 +9,7 @@
 #   - git
 #   - nano
 #
-# This script aims to be posix compatible, to assure functionallity in powershell
+# This script aims to be posix compatible.
 #
 
 #
@@ -32,11 +32,11 @@ readonly ProgName=$(basename $0)
 #
 # Short descriptions for every commands
 #
-helpDesc="Displays the available commands (which you are seeing right now)."
-setupDesc="Initializes the current folder to be used with $ProgName."
-createDesc="Creates a new note."
-editDesc="Edit a existing note."
-deleteDesc="Delete a existing note."
+readonly helpDesc="Displays the available commands (which you are seeing right now)."
+readonly setupDesc="Initializes the current folder to be used with $ProgName."
+readonly createDesc="Creates a new note."
+readonly editDesc="Edit a existing note."
+readonly deleteDesc="Delete a existing note."
 
 function sub_help(){
     echo "Available subcommands:"
